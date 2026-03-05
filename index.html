@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Browser-based first-person shooter game built with Three.js">
+  <title>WARZONE // Browser FPS</title>
+  <link rel="stylesheet" href="style.css">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Orbitron:wght@400;700;900&display=swap"
+    rel="stylesheet">
+</head>
+
+<body>
+  <div id="game-container" tabindex="0"></div>
+  <div id="damage-flash"></div>
+
+  <!-- Crosshair -->
+  <div id="crosshair" class="hidden">
+    <div class="ch-line ch-top"></div>
+    <div class="ch-line ch-right"></div>
+    <div class="ch-line ch-bottom"></div>
+    <div class="ch-line ch-left"></div>
+    <div class="ch-dot"></div>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud" class="hidden">
+    <div id="hud-left">
+      <div id="health-section">
+        <span class="bar-label">HP</span>
+        <div class="bar-container" id="health-bar-container">
+          <div class="bar-fill" id="health-bar"></div>
+        </div>
+        <span class="bar-value" id="health-text">100</span>
+      </div>
+      <div id="shield-section">
+        <span class="bar-label">SHD</span>
+        <div class="bar-container" id="shield-bar-container">
+          <div class="bar-fill shield" id="shield-bar"></div>
+        </div>
+        <span class="bar-value" id="shield-text">100</span>
+      </div>
+      <div id="stamina-section">
+        <span class="bar-label sta">STA</span>
+        <div class="bar-container small" id="stamina-bar-container">
+          <div class="bar-fill stamina" id="stamina-bar"></div>
+        </div>
+      </div>
+    </div>
+    <div id="hud-right">
+      <div id="kd-display">0 / 0</div>
+      <div id="ammo-counter">30 / ∞</div>
+      <div id="fire-mode">SEMI</div>
+      <div id="weapon-slot"><span class="weapon-slot-icon">▮</span> AKM</div>
+    </div>
+  </div>
+
+  <!-- Top Kills Leaderboard -->
+  <div id="top-kills-bar" class="hidden">
+    <div class="top-kills-title">TOP KILLS</div>
+    <div id="top-kills-list"></div>
+  </div>
+
+  <!-- Heal on Kill indicator -->
+  <div id="heal-indicator" class="hidden">+25 HP</div>
+
+  <!-- Kill Feed -->
+  <div id="kill-feed"></div>
+
+  <!-- ===== CHEAT MENU (INSERT key) ===== -->
+  <div id="cheat-menu" class="hidden" onmousedown="event.stopPropagation()" onpointerdown="event.stopPropagation()">
+    <div class="cheat-header">
+      <span class="cheat-title">&#9881; CHEAT MENU</span>
+      <span class="cheat-hint">INSERT to close</span>
+    </div>
+    <div class="cheat-section">
+      <div class="cheat-row">
+        <span class="cheat-label">AIMBOT</span>
+        <label class="cheat-toggle">
+          <input type="checkbox" id="cheat-aimbot">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="cheat-row sub-row">
+        <span class="cheat-label dim">SMOOTHING</span>
+        <input type="range" id="cheat-aim-smooth" min="1" max="20" value="8" class="cheat-slider">
+        <span class="cheat-val" id="cheat-aim-smooth-val">8</span>
+      </div>
+      <div class="cheat-row sub-row">
+        <span class="cheat-label dim">TARGET</span>
+        <select id="cheat-aim-target" class="cheat-select">
+          <option value="head">HEAD</option>
+          <option value="body" selected>BODY</option>
+          <option value="legs">LEGS</option>
+        </select>
+      </div>
+    </div>
+    <div class="cheat-divider"></div>
+    <div class="cheat-section">
+      <div class="cheat-row">
+        <span class="cheat-label">ESP (WALLHACK)</span>
+        <label class="cheat-toggle">
+          <input type="checkbox" id="cheat-esp">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="cheat-row sub-row">
+        <span class="cheat-label dim">SHOW BOX</span>
+        <label class="cheat-toggle">
+          <input type="checkbox" id="cheat-esp-box" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="cheat-row sub-row">
+        <span class="cheat-label dim">SHOW NAME</span>
+        <label class="cheat-toggle">
+          <input type="checkbox" id="cheat-esp-name" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="cheat-row sub-row">
+        <span class="cheat-label dim">SHOW HEALTH</span>
+        <label class="cheat-toggle">
+          <input type="checkbox" id="cheat-esp-health" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+    <div class="cheat-divider"></div>
+    <div class="cheat-section">
+      <div class="cheat-row">
+        <span class="cheat-label">FOV CIRCLE</span>
+        <label class="cheat-toggle">
+          <input type="checkbox" id="cheat-fov">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="cheat-row sub-row">
+        <span class="cheat-label dim">RADIUS</span>
+        <input type="range" id="cheat-fov-size" min="30" max="400" value="120" class="cheat-slider">
+        <span class="cheat-val" id="cheat-fov-size-val">120</span>
+      </div>
+      <div class="cheat-row sub-row">
+        <span class="cheat-label dim">COLOR</span>
+        <div class="color-swatches" id="fov-color-swatches">
+          <span class="swatch active" data-color="#00ff88" style="background:#00ff88"></span>
+          <span class="swatch" data-color="#ff3344" style="background:#ff3344"></span>
+          <span class="swatch" data-color="#ffffff" style="background:#ffffff"></span>
+          <span class="swatch" data-color="#ffdd00" style="background:#ffdd00"></span>
+          <span class="swatch" data-color="#00aaff" style="background:#00aaff"></span>
+          <span class="swatch" data-color="#ff00ff" style="background:#ff00ff"></span>
+        </div>
+      </div>
+    </div>
+    <div class="cheat-divider"></div>
+    <div class="cheat-section">
+      <div class="cheat-row">
+        <span class="cheat-label">INFINITE AMMO</span>
+        <label class="cheat-toggle">
+          <input type="checkbox" id="cheat-inf-ammo">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOV Circle Overlay -->
+  <canvas id="fov-circle" class="hidden"
+    style="position:absolute;top:0;left:0;pointer-events:none;z-index:998;"></canvas>
+  <canvas id="esp-canvas"
+    style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999;"></canvas>
+
+  <!-- ===== ENTER SPLASH ===== -->
+  <div id="enter-gate">
+    <div class="gate-bg"></div>
+    <div class="gate-content">
+      <div class="gate-logo">WARZONE</div>
+      <div class="gate-tagline">TACTICAL COMBAT SIMULATION</div>
+      <button id="enter-btn">
+        <span class="enter-text">ENTER</span>
+        <span class="enter-arrow">&#9658;</span>
+      </button>
+      <div class="gate-warning">// AUTHORIZED PERSONNEL ONLY //</div>
+    </div>
+  </div>
+
+  <!-- ===== USERNAME SCREEN ===== -->
+  <div id="username-screen" class="hidden">
+    <div class="menu-bg"></div>
+    <div class="username-content">
+      <div class="gate-logo" style="font-size:48px">WARZONE</div>
+      <p class="subtitle">CREATE YOUR CALLSIGN</p>
+      <input type="text" id="username-input" class="lobby-input" placeholder="ENTER NAME..." minlength="3"
+        maxlength="16" autocomplete="off">
+      <div id="username-error" class="username-error"></div>
+      <button id="username-continue-btn" class="lobby-btn-create"
+        style="padding:12px 40px;font-size:13px;letter-spacing:3px">CONTINUE</button>
+    </div>
+  </div>
+
+  <!-- ===== LOBBY SCREEN ===== -->
+  <div id="lobby-screen" class="hidden">
+    <div class="menu-bg"></div>
+    <div class="lobby-content">
+      <div class="lobby-logo">WARZONE</div>
+      <p class="subtitle">SELECT LOBBY</p>
+
+      <div class="lobby-create-row">
+        <input type="text" id="lobby-name-input" class="lobby-input" placeholder="LOBBY NAME..." maxlength="20">
+        <button id="lobby-create-btn" class="lobby-btn-create">+ CREATE</button>
+      </div>
+
+      <div id="lobby-list" class="lobby-list">
+        <div class="lobby-empty">No active lobbies. Create one!</div>
+      </div>
+
+      <button id="lobby-refresh-btn" class="lobby-btn-refresh">↻ REFRESH</button>
+      <button id="lobby-solo-btn" class="lobby-btn-solo">PLAY SOLO (No Lobby)</button>
+    </div>
+  </div>
+
+  <!-- ===== LOADOUT SCREEN ===== -->
+  <div id="loadout-screen" class="hidden">
+    <div class="loadout-bg"></div>
+    <div class="loadout-content">
+      <h1 class="loadout-title">SELECT LOADOUT</h1>
+      <p class="loadout-sub">Choose your weapon</p>
+      <div class="loadout-cards">
+        <div class="loadout-card" id="loadout-card-akm" data-weapon="akm">
+          <div class="loadout-preview">
+            <canvas id="preview-akm" width="300" height="220"></canvas>
+          </div>
+          <div class="loadout-info">
+            <h2>AKM</h2>
+            <p>Assault Rifle</p>
+            <div class="loadout-stats">
+              <div class="stat-row"><span>DAMAGE</span>
+                <div class="stat-bar">
+                  <div class="stat-fill" style="width:75%"></div>
+                </div>
+              </div>
+              <div class="stat-row"><span>FIRE RATE</span>
+                <div class="stat-bar">
+                  <div class="stat-fill" style="width:65%"></div>
+                </div>
+              </div>
+              <div class="stat-row"><span>ACCURACY</span>
+                <div class="stat-bar">
+                  <div class="stat-fill" style="width:70%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button class="loadout-select-btn" data-weapon="akm">SELECT</button>
+        </div>
+        <div class="loadout-card" id="loadout-card-watergun" data-weapon="watergun">
+          <div class="loadout-preview">
+            <canvas id="preview-watergun" width="300" height="220"></canvas>
+          </div>
+          <div class="loadout-info">
+            <h2>WATER GUN</h2>
+            <p>Toy Blaster</p>
+            <div class="loadout-stats">
+              <div class="stat-row"><span>DAMAGE</span>
+                <div class="stat-bar">
+                  <div class="stat-fill" style="width:55%"></div>
+                </div>
+              </div>
+              <div class="stat-row"><span>FIRE RATE</span>
+                <div class="stat-bar">
+                  <div class="stat-fill" style="width:85%"></div>
+                </div>
+              </div>
+              <div class="stat-row"><span>ACCURACY</span>
+                <div class="stat-bar">
+                  <div class="stat-fill" style="width:80%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button class="loadout-select-btn" data-weapon="watergun">SELECT</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MAIN MENU ===== -->
+  <div id="main-menu" class="hidden">
+    <div class="menu-bg"></div>
+    <div class="menu-content">
+      <h1>WARZONE</h1>
+      <p class="subtitle">TACTICAL COMBAT SIMULATION</p>
+      <div class="lobby-badge hidden" id="lobby-badge"></div>
+      <button id="start-btn">START GAME</button>
+      <div id="instructions">
+        <h3>CONTROLS</h3>
+        <div class="controls-grid">
+          <span class="key">WASD</span><span>Move</span>
+          <span class="key">MOUSE</span><span>Look Around</span>
+          <span class="key">LEFT CLICK</span><span>Shoot</span>
+          <span class="key">RIGHT CLICK</span><span>Aim (+ Aimbot)</span>
+          <span class="key">SPACE</span><span>Jump</span>
+          <span class="key">SHIFT</span><span>Sprint</span>
+          <span class="key">X</span><span>Toggle Fire Mode</span>
+          <span class="key">R</span><span>Reload</span>
+          <span class="key">TAB</span><span>Scoreboard / Return to Menu</span>
+          <span class="key">INSERT</span><span>Cheat Menu</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Respawn Menu -->
+  <div id="respawn-menu" class="hidden" onmousedown="event.stopPropagation()" onclick="event.stopPropagation()">
+    <h2>ELIMINATED</h2>
+    <p class="death-sub">Your tactical run has ended.</p>
+    <button id="respawn-btn" onclick="if(window.__wz_respawnPlayer) window.__wz_respawnPlayer();">RESPAWN</button>
+  </div>
+
+  <!-- ===== SCOREBOARD (Tab) ===== -->
+  <div id="scoreboard" class="hidden" onmousedown="event.stopPropagation()">
+    <div class="sb-header">
+      <span class="sb-title" id="sb-title">SCOREBOARD</span>
+      <span class="sb-lobby-name" id="sb-lobby-name"></span>
+    </div>
+    <table class="sb-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>NAME</th>
+          <th>KILLS</th>
+          <th>DEATHS</th>
+          <th>K/D</th>
+          <th>PING</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="sb-body"></tbody>
+    </table>
+    <div class="sb-actions">
+      <button id="sb-leave-btn" class="sb-btn hidden">LEAVE LOBBY</button>
+      <button id="sb-settings-btn" class="sb-btn sb-btn-settings hidden">SETTINGS</button>
+    </div>
+    <!-- Owner settings sub-panel -->
+    <div id="sb-settings-panel" class="hidden">
+      <div class="sb-settings-header">LOBBY SETTINGS (Owner)</div>
+      <div class="sb-settings-row">
+        <span>BOTS</span>
+        <label class="cheat-toggle"><input type="checkbox" id="sb-bots-toggle" checked><span
+            class="toggle-slider"></span></label>
+      </div>
+      <div class="sb-settings-row">
+        <span>ALLOW CHEATS</span>
+        <label class="cheat-toggle"><input type="checkbox" id="sb-cheats-toggle" checked><span
+            class="toggle-slider"></span></label>
+      </div>
+      <div class="sb-settings-row" style="flex-direction:column;align-items:flex-start;gap:6px;">
+        <span>TRANSFER OWNERSHIP</span>
+        <select id="sb-transfer-select"
+          style="width:100%;padding:6px 10px;background:#111;color:#00ff88;border:1px solid rgba(0,255,136,0.3);border-radius:4px;font-family:'Orbitron',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;">
+          <option value="">-- SELECT PLAYER --</option>
+        </select>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MP Alert Overlay -->
+  <div id="mp-alert" class="hidden">
+    <div class="mp-alert-title"></div>
+    <div class="mp-alert-sub"></div>
+  </div>
+
+  <!-- Pointer Lock Prompt -->
+  <div id="lock-prompt" class="hidden">
+    <p>CLICK TO PLAY</p>
+  </div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+  <script type="module" src="game.js"></script>
+
+  <script>
+    /* ======= ENTER GATE ======= */
+    document.getElementById('enter-btn').addEventListener('click', async function () {
+      try {
+        await fetch('/log-ip', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userAgent: navigator.userAgent })
+        });
+      } catch (e) { }
+
+      var gate = document.getElementById('enter-gate');
+      gate.style.opacity = '0';
+      gate.style.pointerEvents = 'none';
+      setTimeout(function () {
+        gate.style.display = 'none';
+        var saved = localStorage.getItem('wz_username');
+        if (saved) {
+          document.getElementById('username-input').value = saved;
+        }
+        document.getElementById('username-screen').classList.remove('hidden');
+      }, 600);
+    });
+
+    /* ======= USERNAME SCREEN ======= */
+    document.getElementById('username-continue-btn').addEventListener('click', function () {
+      var name = document.getElementById('username-input').value.trim();
+      var err = document.getElementById('username-error');
+      if (name.length < 3) { err.textContent = 'Name must be at least 3 characters'; return; }
+      if (name.length > 16) { err.textContent = 'Name must be 16 characters or less'; return; }
+      err.textContent = '';
+      window.__playerName = name;
+      localStorage.setItem('wz_username', name);
+      document.getElementById('username-screen').classList.add('hidden');
+      document.getElementById('lobby-screen').classList.remove('hidden');
+      if (window.__lobbyInit) window.__lobbyInit();
+    });
+    document.getElementById('username-input').addEventListener('keydown', function (e) {
+      if (e.code === 'Enter') { e.preventDefault(); document.getElementById('username-continue-btn').click(); }
+    });
+
+    /* ======= LOBBY SCREEN ======= */
+    var currentLobbyId = null;
+
+    document.getElementById('lobby-create-btn').addEventListener('click', function () {
+      var name = document.getElementById('lobby-name-input').value.trim() || 'LOBBY';
+      if (window.__mpCreateLobby) window.__mpCreateLobby(name);
+    });
+
+    document.getElementById('lobby-name-input').addEventListener('keydown', function (e) {
+      if (e.code === 'Enter') {
+        e.preventDefault();
+        document.getElementById('lobby-create-btn').click();
+      }
+    });
+
+    document.getElementById('lobby-refresh-btn').addEventListener('click', function () {
+      if (window.__mpGetLobbies) window.__mpGetLobbies();
+    });
+
+    document.getElementById('lobby-solo-btn').addEventListener('click', function () {
+      document.getElementById('lobby-screen').classList.add('hidden');
+      document.getElementById('loadout-screen').classList.remove('hidden');
+      if (window.__initLoadoutPreviews) window.__initLoadoutPreviews();
+    });
+
+    /* Called by game.js to render the lobby list */
+    window.__renderLobbies = function (lobbies) {
+      var list = document.getElementById('lobby-list');
+      if (!lobbies.length) {
+        list.innerHTML = '<div class="lobby-empty">No active lobbies. Create one!</div>';
+        return;
+      }
+      list.innerHTML = lobbies.map(function (l) {
+        return '<div class="lobby-item">' +
+          '<span class="lobby-item-name">' + l.name + '</span>' +
+          '<span class="lobby-item-owner">by ' + (l.ownerName || '?') + '</span>' +
+          '<span class="lobby-item-count">' + l.count + ' player' + (l.count !== 1 ? 's' : '') + '</span>' +
+          '<button class="lobby-join-btn" data-id="' + l.id + '">JOIN</button>' +
+          '</div>';
+      }).join('');
+      list.querySelectorAll('.lobby-join-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          if (window.__mpJoinLobby) window.__mpJoinLobby(this.dataset.id);
+        });
+      });
+    };
+
+    window.__onLobbyJoined = function (lobbyId, lobbyName) {
+      currentLobbyId = lobbyId;
+      document.getElementById('lobby-screen').classList.add('hidden');
+      document.getElementById('loadout-screen').classList.remove('hidden');
+      window.__pendingLobbyBadge = { name: lobbyName };
+      if (window.__initLoadoutPreviews) window.__initLoadoutPreviews();
+    };
+
+    /* Return to lobby screen (called on kick/ban/leave or solo return) */
+    window.__returnToLobby = function () {
+      currentLobbyId = null;
+      if (window.__wz_stopGame) window.__wz_stopGame();
+      document.getElementById('scoreboard').classList.add('hidden');
+      document.getElementById('main-menu').classList.add('hidden');
+      document.getElementById('hud').classList.add('hidden');
+      document.getElementById('crosshair').classList.add('hidden');
+      var topKills = document.getElementById('top-kills-bar');
+      if (topKills) topKills.classList.add('hidden');
+      document.getElementById('respawn-menu').classList.add('hidden');
+      document.getElementById('lock-prompt').classList.add('hidden');
+      document.getElementById('lobby-screen').classList.remove('hidden');
+      document.exitPointerLock();
+      var badge = document.getElementById('lobby-badge');
+      badge.classList.add('hidden');
+      if (window.__mpGetLobbies) window.__mpGetLobbies();
+    };
+
+    /* Auto-refresh lobby list every 5s while on lobby screen */
+    setInterval(function () {
+      var lobbyScreen = document.getElementById('lobby-screen');
+      if (lobbyScreen && !lobbyScreen.classList.contains('hidden')) {
+        if (window.__mpGetLobbies) window.__mpGetLobbies();
+      }
+    }, 5000);
+
+    /* ======= LOADOUT SELECTION ======= */
+    window.__selectedWeapon = 'akm'; // default
+
+    document.querySelectorAll('.loadout-select-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var weapon = this.dataset.weapon;
+        window.__selectedWeapon = weapon;
+        // Highlight selected card
+        document.querySelectorAll('.loadout-card').forEach(function (c) { c.classList.remove('selected'); });
+        this.closest('.loadout-card').classList.add('selected');
+        // Transition to main menu
+        setTimeout(function () {
+          document.getElementById('loadout-screen').classList.add('hidden');
+          document.getElementById('main-menu').classList.remove('hidden');
+          // Apply pending lobby badge if joining a lobby
+          if (window.__pendingLobbyBadge) {
+            var badge = document.getElementById('lobby-badge');
+            badge.textContent = 'LOBBY: ' + window.__pendingLobbyBadge.name;
+            badge.classList.remove('hidden');
+            window.__pendingLobbyBadge = null;
+          }
+        }, 300);
+      });
+    });
+
+    // Also allow clicking the card itself to select
+    document.querySelectorAll('.loadout-card').forEach(function (card) {
+      card.addEventListener('click', function (e) {
+        if (e.target.classList.contains('loadout-select-btn')) return; // let button handler do it
+        var btn = this.querySelector('.loadout-select-btn');
+        if (btn) btn.click();
+      });
+    });
+  </script>
+</body>
+
+</html>
