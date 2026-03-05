@@ -11,7 +11,8 @@ const PORT = 3000;
 const LOG_FILE = path.join(__dirname, 'visitor_log.txt');
 
 app.use(express.json());
-app.use(express.static(__dirname));
+const PUBLIC_DIR = path.join(__dirname, 'public');
+app.use(express.static(PUBLIC_DIR));
 
 app.post('/log-ip', (req, res) => {
   const ip = req.headers['x-forwarded-for']?.split(',')[0].trim()
